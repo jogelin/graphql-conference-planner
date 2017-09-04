@@ -1,9 +1,10 @@
-import {Component, OnDestroy, OnInit} from '@angular/core';
-import {Conference} from '../types';
-import {chunk, unsubscribeAll} from '../../utils';
-import {Subscription} from 'rxjs/Subscription';
-import {Observable} from 'rxjs/Observable';
+import { Component, OnDestroy, OnInit } from '@angular/core';
+import { Conference } from '../types';
+import { chunk, unsubscribeAll } from '../../utils';
+import { Subscription } from 'rxjs/Subscription';
 import 'rxjs/add/observable/empty';
+import { Apollo } from 'apollo-angular';
+import { AllConferencesQuery, AllConferencesQueryResponse } from '../conference.apollo-query';
 
 @Component({
   selector: 'cp-conference-card-list',
@@ -16,12 +17,13 @@ export class ConferenceCardListComponent implements OnInit, OnDestroy {
   allConferences: Conference[];
   subscriptions: Subscription[] = [];
 
-  constructor() {
+  constructor(private apollo: Apollo) {
   }
 
   ngOnInit() {
-    // TODO: Write AllConferencesQuery in conference.apollo-query.ts and execute it
-    const allConferences$ = Observable.empty().subscribe(({ data }) => {
+    const allConferences$ = this.apollo.watchQuery<AllConferencesQueryResponse>({
+      query: AllConferencesQuery
+    }).subscribe(({data}) => {
       this.loading = data.loading;
       this.allConferences = data.allConferences;
     });
