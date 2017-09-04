@@ -1,10 +1,11 @@
-import {Component, OnDestroy, OnInit} from '@angular/core';
-import {ActivatedRoute, ParamMap} from '@angular/router';
-import {unsubscribeAll} from '../../utils';
-import {Talk} from '../types';
-import {Subscription} from 'rxjs/Subscription';
-import {Observable} from 'rxjs/Observable';
+import { Component, OnDestroy, OnInit } from '@angular/core';
+import { ActivatedRoute, ParamMap } from '@angular/router';
+import { unsubscribeAll } from '../../utils';
+import { Talk } from '../types';
+import { Subscription } from 'rxjs/Subscription';
 import 'rxjs/add/observable/empty';
+import { GetTalkByIdQuery, GetTalkByIdQueryResponse } from '../talk.apollo-query';
+import { Apollo } from 'apollo-angular';
 
 @Component({
   selector: 'cp-talk-details',
@@ -15,7 +16,7 @@ export class TalkDetailsComponent implements OnInit, OnDestroy {
   talk: Talk;
   subscriptions: Subscription[] = [];
 
-  constructor(private route: ActivatedRoute) {
+  constructor(private route: ActivatedRoute, private apollo: Apollo) {
     this.getTalkDetails = this.getTalkDetails.bind(this);
   }
 
@@ -23,7 +24,7 @@ export class TalkDetailsComponent implements OnInit, OnDestroy {
     const getTalkDetails$ = this.route.paramMap
       .map((params: ParamMap) => params.get('id'))
       .switchMap(this.getTalkDetails)
-      .subscribe(({ data }) => {
+      .subscribe(({data}) => {
         this.loading = data.loading;
         this.talk = data.talk;
       });
@@ -32,7 +33,12 @@ export class TalkDetailsComponent implements OnInit, OnDestroy {
   }
 
   getTalkDetails(talkId: string) {
-    return Observable.empty();
+    return this.apollo.watchQuery<GetTalkByIdQueryResponse>({
+      query: GetTalkByIdQuery,
+      variables: {
+        id: talkId
+      }
+    });
   }
 
 
