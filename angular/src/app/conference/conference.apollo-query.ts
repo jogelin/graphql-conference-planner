@@ -23,7 +23,43 @@ export interface AllConferencesQueryResponse {
 }
 
 
-export const DetailedConferenceQuery = 'TO IMPLEMENT';
+export const DetailedConferenceQuery = gql`
+  query Conference($id: ID!) {
+    conference: Conference(id: $id) {
+      id
+      name
+      startDate
+      logo
+      _sponsorsMeta {
+        count
+      }
+      city
+      country
+      description
+      _attendeesMeta {
+        count
+      }
+      sponsors {
+        id
+        type
+      }
+      talks {
+        title
+        id
+        description
+        speaker {
+          id
+          email
+          bio
+          picture
+          publicName
+          username
+          createdAt
+        }
+      }
+    }
+  }
+`;
 
 export interface DetailedConferenceQueryResponse {
   conference;
