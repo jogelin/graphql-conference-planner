@@ -1,11 +1,11 @@
-import {Component, OnDestroy, OnInit} from "@angular/core";
-import {ActivatedRoute, ParamMap} from '@angular/router';
-import {getSpeakerByIdResponse} from '../speaker.apollo-query';
-import {chunk, unsubscribeAll} from '../../utils';
-import {Subscription} from 'rxjs/Subscription';
-import {Speaker} from '../types';
-import {Observable} from 'rxjs/Observable';
+import { Component, OnDestroy, OnInit } from '@angular/core';
+import { ActivatedRoute, ParamMap } from '@angular/router';
+import { GetSpeakerByIdQuery, GetSpeakerByIdResponse } from '../speaker.apollo-query';
+import { chunk, unsubscribeAll } from '../../utils';
+import { Subscription } from 'rxjs/Subscription';
+import { Speaker } from '../types';
 import 'rxjs/add/observable/empty';
+import { Apollo } from 'apollo-angular';
 
 @Component({
   selector: 'cp-speaker-details',
@@ -17,7 +17,7 @@ export class SpeakerDetailsComponent implements OnInit, OnDestroy {
   loading;
   subscriptions: Subscription[] = [];
 
-  constructor(private route: ActivatedRoute) {
+  constructor(private route: ActivatedRoute, private apollo: Apollo) {
     this.getSpeaker = this.getSpeaker.bind(this);
   }
 
@@ -25,7 +25,7 @@ export class SpeakerDetailsComponent implements OnInit, OnDestroy {
     const getSpeaker$ = this.route.paramMap
       .map((params: ParamMap) => params.get('id'))
       .switchMap(this.getSpeaker)
-      .subscribe(({ data }) => {
+      .subscribe(({data}) => {
         this.loading = data.loading;
         this.speaker = this.updateSpeaker(data);
       });
@@ -34,11 +34,15 @@ export class SpeakerDetailsComponent implements OnInit, OnDestroy {
   }
 
   getSpeaker(speakerId: string) {
-    // TODO: Write getSpeakerById and execute it
-    return Observable.empty();
+    return this.apollo.watchQuery<GetSpeakerByIdResponse>({
+      query: GetSpeakerByIdQuery,
+      variables: {
+        id: speakerId
+      }
+    });
   }
 
-  updateSpeaker(data: getSpeakerByIdResponse): Speaker {
+  updateSpeaker(data: GetSpeakerByIdResponse): Speaker {
     return Object.assign({},
       ...data.speaker,
       {
