@@ -1,11 +1,12 @@
-import {Component, OnDestroy, OnInit} from '@angular/core';
-import {FormBuilder, FormGroup, Validators} from '@angular/forms';
-import {Subscription} from 'rxjs/Subscription';
-import {unsubscribeAll} from '../../utils';
-import {Router} from '@angular/router';
-import {AuthenticationValidators} from '../authentication.validators';
-import {Observable} from 'rxjs/Observable';
+import { Component, OnDestroy, OnInit } from '@angular/core';
+import { FormBuilder, FormGroup, Validators } from '@angular/forms';
+import { Subscription } from 'rxjs/Subscription';
+import { unsubscribeAll } from '../../utils';
+import { Router } from '@angular/router';
+import { AuthenticationValidators } from '../authentication.validators';
 import 'rxjs/add/observable/empty';
+import { Apollo } from 'apollo-angular';
+import { RegisterUserMutation } from 'app/authentication/authentication.apollo-query';
 
 
 @Component({
@@ -20,7 +21,7 @@ export class RegisterComponent implements OnInit, OnDestroy {
   registerForm: FormGroup;
 
 
-  constructor(private fb: FormBuilder, private router: Router) {
+  constructor(private fb: FormBuilder, private router: Router, private apollo: Apollo) {
   }
 
   ngOnInit(): void {
@@ -39,17 +40,26 @@ export class RegisterComponent implements OnInit, OnDestroy {
   }
 
   submit() {
-    const { passwordConfirmation, ...userData } = this.registerForm.value;
+    const {passwordConfirmation, ...userData} = this.registerForm.value;
 
-    // TODO: Write RegisterUserMutation and execute it
-    const registerUserMutation$ = Observable.empty()
-      .subscribe(({ data }) => {
-        this.alreadyExist = false;
-        this.publicName = this.registerForm.get('publicName').value;
-        this.navigateToHome();
-      }, error => {
-        this.alreadyExist = true;
-      });
+    const registerUserMutation$ = this.apollo.mutate({
+      mutation: RegisterUserMutation,
+      variables: {
+        ...userData,
+        authProvider: {
+          email: {
+            email: userData.email,
+            password: passwordConfirmation
+          }
+        }
+      }
+    }).subscribe(({data}) => {
+      this.alreadyExist = false;
+      this.publicName = this.registerForm.get('publicName').value;
+      this.navigateToHome();
+    }, error => {
+      this.alreadyExist = true;
+    });
 
     this.subscriptions = this.subscriptions.concat(registerUserMutation$);
   }
