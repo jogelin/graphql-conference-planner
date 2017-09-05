@@ -1,9 +1,10 @@
 // We use the gql tag to parse our query string into a query document
 import gql from 'graphql-tag';
+import { talkFragments, speakerFragments } from '../talk/talk.apollo-query';
 
-export const AllConferencesQuery = gql`
-  {
-    allConferences {
+export const conferenceFragments = {
+  ConferenceOverview: gql`
+    fragment ConferenceOverview on Conference {
       id
       name
       startDate
@@ -13,8 +14,18 @@ export const AllConferencesQuery = gql`
       }
       city
       country
+      description
+    }
+  `,
+};
+
+export const AllConferencesQuery = gql`
+  {
+    allConferences {
+      ...ConferenceOverview
     }
   }
+  ${conferenceFragments.ConferenceOverview}
 `;
 
 export interface AllConferencesQueryResponse {
@@ -26,17 +37,8 @@ export interface AllConferencesQueryResponse {
 export const DetailedConferenceQuery = gql`
   query Conference($id: ID!) {
     conference: Conference(id: $id) {
-      id
-      name
-      startDate
-      logo
+      ...ConferenceOverview
       _sponsorsMeta {
-        count
-      }
-      city
-      country
-      description
-      _attendeesMeta {
         count
       }
       sponsors {
@@ -44,21 +46,16 @@ export const DetailedConferenceQuery = gql`
         type
       }
       talks {
-        title
-        id
-        description
+        ...TalkOverview
         speaker {
-          id
-          email
-          bio
-          picture
-          publicName
-          username
-          createdAt
+          ...SpeakerOverview
         }
       }
     }
   }
+  ${conferenceFragments.ConferenceOverview}
+  ${talkFragments.TalkOverview}
+  ${speakerFragments.SpeakerOverview}
 `;
 
 export interface DetailedConferenceQueryResponse {
