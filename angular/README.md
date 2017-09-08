@@ -6,7 +6,7 @@
 yarn
 yarn start
 ```
-your app will be running on port `3000
+your app will be running on port `4200`
 
 **Read the schema documentation hosted on graph.cool**:
 
@@ -17,7 +17,7 @@ yarn start
 ```
 
 ## TODO
-- You first have to create the apolloClient in apollo.config.ts
+- You first have to update the apolloClient in apollo.config.ts
 - And use this client in the app.module.ts
 
 
