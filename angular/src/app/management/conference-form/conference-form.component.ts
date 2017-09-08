@@ -1,13 +1,13 @@
-import {Component, OnDestroy, OnInit} from '@angular/core';
-import {FormBuilder, FormGroup, Validators} from '@angular/forms';
-import {addConference, getConferenceResponse, updateConference} from '../management.apollo-query';
-import {ActivatedRoute, ParamMap} from '@angular/router';
-import {dateToInput, unsubscribeAll} from '../../utils';
+import { Component, OnDestroy, OnInit } from '@angular/core';
+import { FormBuilder, FormGroup, Validators } from '@angular/forms';
+import { addConference, getConference, GetConferenceResponse, updateConference } from '../management.apollo-query';
+import { ActivatedRoute, ParamMap } from '@angular/router';
+import { dateToInput, unsubscribeAll } from '../../utils';
 import 'rxjs/add/operator/filter';
-import {Subscription} from 'rxjs/Subscription';
-import {ConferenceFormValidators} from './conference-form.validators';
-import {Observable} from 'rxjs/Observable';
+import { Subscription } from 'rxjs/Subscription';
+import { ConferenceFormValidators } from './conference-form.validators';
 import 'rxjs/add/observable/empty';
+import { Apollo } from 'apollo-angular';
 
 
 @Component({
@@ -22,8 +22,7 @@ export class ConferenceFormComponent implements OnInit, OnDestroy {
 
   conferenceForm: FormGroup;
 
-  constructor(private route: ActivatedRoute,
-              private fb: FormBuilder) {
+  constructor(private route: ActivatedRoute, private fb: FormBuilder, private apollo: Apollo) {
     this.setupConferenceForm();
     this.getConference = this.getConference.bind(this);
     // Getting the id params for you
@@ -36,7 +35,7 @@ export class ConferenceFormComponent implements OnInit, OnDestroy {
       .map((params: ParamMap) => params.get('id'))
       .filter((idParam: string) => !!idParam)
       .switchMap(this.getConference)
-      .subscribe(({ data }) => {
+      .subscribe(({data}) => {
         this.updateConferenceForm(data);
       });
 
@@ -60,7 +59,7 @@ export class ConferenceFormComponent implements OnInit, OnDestroy {
     });
   }
 
-  updateConferenceForm(data: getConferenceResponse) {
+  updateConferenceForm(data: GetConferenceResponse) {
     this.conferenceForm.patchValue({
       ...data.conference,
       startDate: dateToInput(data.conference.startDate),
@@ -73,19 +72,36 @@ export class ConferenceFormComponent implements OnInit, OnDestroy {
   }
 
   getConference(id) {
-    // TODO: Write getConference and execute
-    return Observable.empty();
+    return this.apollo.watchQuery<GetConferenceResponse>({
+      query: getConference,
+      variables: {
+        id: id
+      }
+    });
   }
 
   submitConference($event) {
     $event.preventDefault();
 
-    // TODO: Write updateConference & addConference and execute it
+    let {startDate, endDate, ...confData} = this.conferenceForm.value;
+    startDate = startDate ? {startDate: this.dateInputToDate(startDate)} : {};
+    endDate = endDate ? {endDate: this.dateInputToDate(endDate)} : {};
+
+    const id = this.idParam ? {id: this.idParam} : {};
+
     const mutation = this.idParam ? updateConference : addConference;
 
-    const updateOrAdd$ = Observable.empty().subscribe(_ => {
+    const updateOrAdd$ = this.apollo.mutate({
+      mutation: mutation,
+      variables: {
+        ...id,
+        ...confData,
+        ...startDate,
+        ...endDate
+      }
+    }).subscribe(_ => {
       this.showModalSuccess = true;
-    }, err => console.log(err));
+    }, err => console.error(err));
 
     this.subscriptions = this.subscriptions.concat(updateOrAdd$);
   }

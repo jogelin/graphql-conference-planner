@@ -8,6 +8,8 @@ export const conferenceFragments = {
       id
       name
       startDate
+      endDate
+      website
       logo
       _attendeesMeta {
         count
