@@ -1,10 +1,11 @@
-import {Component, OnDestroy, OnInit} from '@angular/core';
-import {DEFAULT_ITEMS_PER_PAGE, START_PAGE} from '../../table.config';
-import {Talk} from '../../talk/types';
-import {Subscription} from 'rxjs/Subscription';
-import {unsubscribeAll} from '../../utils';
+import { Component, OnDestroy, OnInit } from '@angular/core';
+import { DEFAULT_ITEMS_PER_PAGE, START_PAGE } from '../../table.config';
+import { Talk } from '../../talk/types';
+import { Subscription } from 'rxjs/Subscription';
+import { unsubscribeAll } from '../../utils';
 import 'rxjs/add/observable/empty';
-import {Observable} from 'rxjs/Observable';
+import { Apollo, ApolloQueryObservable } from 'apollo-angular/build/src';
+import { deleteTalk, getAllTalks, GetAllTalksResponse } from '../management.apollo-query';
 
 @Component({
   selector: 'cp-talk-table-list',
@@ -19,47 +20,71 @@ export class TalkTableListComponent implements OnInit, OnDestroy {
   pageNumber = START_PAGE;
   private subscriptions: Subscription[] = [];
 
-  constructor() {
+  allTalkQuery: ApolloQueryObservable<any>;
+
+  constructor(private apollo: Apollo) {
     this.deleteTalk = this.deleteTalk.bind(this);
     this.navigateToPage = this.navigateToPage.bind(this);
   }
 
   ngOnInit() {
-    this.getTalksChunk();
+    this.getAllTalks();
   }
 
   navigateToPage(pageNumber) {
-    this.getTalksChunk(pageNumber);
+    this.refreshTalks(pageNumber);
   }
 
-  getTalks(pageNumber = 1) {
-    // TODO: Write getAllTalks and execute it
-    return Observable.empty();
+  getAllTalksQueryVariables(pageNumber = START_PAGE) {
+    const lastId = this.talks && pageNumber > 1 ? this.talks[this.talks.length - 1].id : null;
+    return {
+      first: DEFAULT_ITEMS_PER_PAGE,
+      after: lastId
+    };
   }
 
-  getTalksChunk(pageNumber = 1) {
-    const getAllTalks$ = this.getTalks(pageNumber).subscribe(({ data }) => {
-      this.talks = data.talks;
-      this.total = data._allTalksMeta.count;
-      this.pageNumber = pageNumber;
+  private updateData(data, pageNumber) {
+    this.talks = data.talks;
+    this.total = data._allTalksMeta.count;
+    this.pageNumber = pageNumber;
+  }
+
+  private getAllTalks(pageNumber = START_PAGE) {
+
+    this.allTalkQuery = this.apollo.watchQuery<GetAllTalksResponse>({
+      query: getAllTalks,
+      variables: this.getAllTalksQueryVariables(pageNumber)
     });
 
+    const getAllTalks$ = this.allTalkQuery
+      .take(1)
+      .subscribe(({data}) => this.updateData(data, pageNumber));
     this.subscriptions = this.subscriptions.concat(getAllTalks$);
   }
 
-  deleteTalk(id) {
-    // TODO: Write deleteTalk and execute it
-    const deleteTalk$ = Observable.empty().switchMap(_ => this.getTalks())
-      .subscribe(({ data }) => {
-        this.talks = data.talks;
-        this.total = data._allTalksMeta.count;
-        this.pageNumber = 1;
+  private refreshTalks(pageNumber = START_PAGE) {
+    return this.allTalkQuery.refetch(this.getAllTalksQueryVariables(pageNumber))
+      .then(({data}) => {
+        this.updateData(data, pageNumber);
+        return data;
       });
+  }
+
+  deleteTalk(id) {
+    const deleteTalk$ = this.apollo.mutate({
+      mutation: deleteTalk,
+      variables: {
+        id: id
+      }
+    }).switchMap(_ => this.refreshTalks(START_PAGE))
+      .take(1)
+      .subscribe();
+
     this.subscriptions = this.subscriptions.concat(deleteTalk$);
   }
 
-
-  ngOnDestroy(): void {
+  ngOnDestroy() {
     unsubscribeAll(this.subscriptions);
   }
+
 }

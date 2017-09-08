@@ -1,4 +1,4 @@
-import {Subscription} from 'rxjs/Subscription';
+import { Subscription } from 'rxjs/Subscription';
 
 export function chunk(array, chunkSize) {
   const R = [];
@@ -43,4 +43,14 @@ export const timeToInput = (dateString) => {
   minutes = parseInt(minutes, 10) < 10 ? `0${minutes}` : minutes;
 
   return `${hours}:${minutes}`;
+};
+
+export const dateInputToDate = (dateInput) => {
+  return new Date(dateInput.slice(-4), dateInput.slice(3, 5), dateInput.slice(0, 2));
+};
+
+export const timeInputToDate = (timeInput) => {
+  const dt = new Date();
+  dt.setHours(timeInput.slice(0, 2), timeInput.slice(-2));
+  return dt;
 };

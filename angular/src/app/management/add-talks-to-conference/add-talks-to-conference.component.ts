@@ -5,6 +5,11 @@ import {unsubscribeAll} from '../../utils';
 import {Talk} from '../../talk/types';
 import 'rxjs/add/observable/empty';
 import {Observable} from 'rxjs/Observable';
+import {
+  getTalksOnConference, GetTalksOnConferenceResponse,
+  updateTalksOnConference
+} from '../management.apollo-query';
+import { Apollo } from 'apollo-angular/build/src';
 
 @Component({
   selector: 'cp-add-talks-to-conference',
@@ -16,7 +21,7 @@ export class AddTalksToConferenceComponent implements OnInit, OnDestroy {
   conferenceIdParam: string;
   subscriptions: Subscription[] = [];
 
-  constructor(private route: ActivatedRoute) {
+  constructor(private route: ActivatedRoute, private apollo: Apollo) {
     this.conferenceIdParam = this.route.snapshot.params['id'];
     this.addTalk = this.addTalk.bind(this);
     this.deleteTalk = this.deleteTalk.bind(this);
@@ -27,11 +32,13 @@ export class AddTalksToConferenceComponent implements OnInit, OnDestroy {
   }
 
   getTalksAndTalksOnConference() {
-    // TODO: Write getTalksOnConference and execute it
-    const getTalksOnConference$ = Observable.empty().subscribe(({ data }) => {
-      this.talks = data.talks;
-      this.talksOnConference = this.getTalksOnConference(data.talks);
-    });
+    const getTalksOnConference$ = this.apollo.watchQuery<GetTalksOnConferenceResponse>({
+      query: getTalksOnConference
+    })
+      .subscribe(({ data }) => {
+        this.talks = data.talks;
+        this.talksOnConference = this.getTalksOnConference(data.talks);
+      });
 
     this.subscriptions = this.subscriptions.concat(getTalksOnConference$);
   }
@@ -43,8 +50,13 @@ export class AddTalksToConferenceComponent implements OnInit, OnDestroy {
   }
 
   addTalk(talkId) {
-    // TODO: Write updateTalksOnConference and execute it
-    const updateTalksOnConference$ = Observable.empty().subscribe(_ => {
+    const updateTalksOnConference$ = this.apollo.mutate({
+      mutation: updateTalksOnConference,
+      variables: {
+        id: this.conferenceIdParam,
+        talksIds: this.talksOnConference.map(talk => talk.id).concat(talkId)
+      }
+    }).subscribe(_ => {
       const talkToAdd = this.talks.find(talk => talk.id === talkId);
       this.talksOnConference = this.talksOnConference
         .concat(this.talksOnConference.includes(talkToAdd) ? [] : talkToAdd);
@@ -54,8 +66,13 @@ export class AddTalksToConferenceComponent implements OnInit, OnDestroy {
   }
 
   deleteTalk(talkId: string) {
-    // TODO: Execute updateTalksOnConference
-    const updateTalksOnConference$ = Observable.empty().subscribe(_ => {
+    const updateTalksOnConference$ = this.apollo.mutate({
+      mutation: updateTalksOnConference,
+      variables: {
+        id: this.conferenceIdParam,
+        talksIds: this.talksOnConference.map(talk => talk.id).filter(id => talkId !== id)
+      }
+    }).subscribe(_ => {
       this.talksOnConference = this.talksOnConference
         .filter(talk => talk.id !== talkId);
     });

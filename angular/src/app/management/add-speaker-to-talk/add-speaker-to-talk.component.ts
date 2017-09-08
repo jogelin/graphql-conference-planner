@@ -5,6 +5,8 @@ import {Subscription} from 'rxjs/Subscription';
 import {unsubscribeAll} from '../../utils';
 import {Observable} from 'rxjs/Observable';
 import 'rxjs/add/observable/empty';
+import { Apollo } from 'apollo-angular';
+import { getSpeakers, GetSpeakersResponse, updateTalk, updateTalkSpeaker } from 'app/management/management.apollo-query';
 
 @Component({
   selector: 'cp-add-speaker-to-talk',
@@ -17,7 +19,7 @@ export class AddSpeakerToTalkComponent implements OnInit, OnDestroy {
   talkIdParam: string;
   subscriptions: Subscription[] = [];
 
-  constructor(private route: ActivatedRoute) {
+  constructor(private route: ActivatedRoute, private apollo: Apollo) {
     this.talkIdParam = this.route.snapshot.params['id'];
     this.addSpeaker = this.addSpeaker.bind(this);
     this.deleteSpeaker = this.deleteSpeaker.bind(this);
@@ -28,8 +30,10 @@ export class AddSpeakerToTalkComponent implements OnInit, OnDestroy {
   }
 
   getSpeakersAndSpeakersOnTalk() {
-    // TODO: Write getSpeakers and execute it
-    const getSpeakers$ = Observable.empty().subscribe(({ data }) => {
+    const getSpeakers$ = this.apollo.watchQuery<GetSpeakersResponse>({
+      query: getSpeakers
+    })
+      .subscribe(({ data }) => {
       this.speakers = data.speakers;
       this.speakerOnTalk = this.getSpeakerOnTalk(data.speakers);
     });
@@ -44,8 +48,13 @@ export class AddSpeakerToTalkComponent implements OnInit, OnDestroy {
   }
 
   addSpeaker(speakerId) {
-    // TODO: Write updateTalkSpeaker and execute it
-    const updateTalkSpeaker$ = Observable.empty().subscribe(_ => {
+    const updateTalkSpeaker$ = this.apollo.mutate({
+      mutation: updateTalkSpeaker,
+      variables: {
+        id: this.talkIdParam,
+        speakerId: speakerId
+      }
+    }).subscribe(_ => {
       this.speakerOnTalk = this.speakers.find(speaker => speaker.id === speakerId);
     });
 
@@ -53,8 +62,13 @@ export class AddSpeakerToTalkComponent implements OnInit, OnDestroy {
   }
 
   deleteSpeaker() {
-    // TODO: Execute updateTalkSpeaker
-    const updateTalkSpeaker$ = Observable.empty().subscribe(_ => {
+    const updateTalkSpeaker$ = this.apollo.mutate({
+      mutation: updateTalkSpeaker,
+      variables: {
+        id: this.talkIdParam,
+        speakerId: null
+      }
+    }).subscribe(_ => {
       this.speakerOnTalk = null;
     });
 

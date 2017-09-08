@@ -2,7 +2,7 @@ import { Component, OnDestroy, OnInit } from '@angular/core';
 import { FormBuilder, FormGroup, Validators } from '@angular/forms';
 import { addConference, getConference, GetConferenceResponse, updateConference } from '../management.apollo-query';
 import { ActivatedRoute, ParamMap } from '@angular/router';
-import { dateToInput, unsubscribeAll } from '../../utils';
+import { dateInputToDate, dateToInput, unsubscribeAll } from '../../utils';
 import 'rxjs/add/operator/filter';
 import { Subscription } from 'rxjs/Subscription';
 import { ConferenceFormValidators } from './conference-form.validators';
@@ -67,10 +67,6 @@ export class ConferenceFormComponent implements OnInit, OnDestroy {
     });
   }
 
-  dateInputToDate(dateInput) {
-    return new Date(dateInput.slice(-4), dateInput.slice(3, 5), dateInput.slice(0, 2));
-  }
-
   getConference(id) {
     return this.apollo.watchQuery<GetConferenceResponse>({
       query: getConference,
@@ -84,8 +80,8 @@ export class ConferenceFormComponent implements OnInit, OnDestroy {
     $event.preventDefault();
 
     let {startDate, endDate, ...confData} = this.conferenceForm.value;
-    startDate = startDate ? {startDate: this.dateInputToDate(startDate)} : {};
-    endDate = endDate ? {endDate: this.dateInputToDate(endDate)} : {};
+    startDate = startDate ? {startDate: dateInputToDate(startDate)} : {};
+    endDate = endDate ? {endDate: dateInputToDate(endDate)} : {};
 
     const id = this.idParam ? {id: this.idParam} : {};
 

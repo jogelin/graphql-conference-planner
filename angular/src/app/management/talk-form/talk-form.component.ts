@@ -1,12 +1,12 @@
-import {Component, OnDestroy, OnInit} from '@angular/core';
-import {FormBuilder, FormGroup, Validators} from '@angular/forms';
-import {ActivatedRoute, ParamMap} from '@angular/router';
-import {timeToInput, unsubscribeAll} from '../../utils';
+import { Component, OnDestroy, OnInit } from '@angular/core';
+import { FormBuilder, FormGroup, Validators } from '@angular/forms';
+import { ActivatedRoute, ParamMap } from '@angular/router';
+import { timeInputToDate, timeToInput, unsubscribeAll } from '../../utils';
 import 'rxjs/add/operator/filter';
-import {addTalk, getTalkResponse, updateTalk} from '../management.apollo-query';
-import {Subscription} from 'rxjs/Subscription';
+import { addTalk, getTalk, GetTalkResponse, updateTalk } from '../management.apollo-query';
+import { Subscription } from 'rxjs/Subscription';
 import 'rxjs/add/observable/empty';
-import {Observable} from 'rxjs/Observable';
+import { Apollo } from 'apollo-angular';
 
 @Component({
   selector: 'cp-talk-form',
@@ -20,8 +20,7 @@ export class TalkFormComponent implements OnInit, OnDestroy {
 
   talkForm: FormGroup;
 
-  constructor(private route: ActivatedRoute,
-              private fb: FormBuilder) {
+  constructor(private route: ActivatedRoute, private fb: FormBuilder, private apollo: Apollo) {
 
     this.setupForm();
     this.getTalk = this.getTalk.bind(this);
@@ -33,7 +32,7 @@ export class TalkFormComponent implements OnInit, OnDestroy {
       .map((params: ParamMap) => params.get('id'))
       .filter((idParam: string) => !!idParam)
       .switchMap(this.getTalk)
-      .subscribe(({ data }) => {
+      .subscribe(({data}) => {
         this.updateTalkForm(data);
       });
 
@@ -41,8 +40,12 @@ export class TalkFormComponent implements OnInit, OnDestroy {
   }
 
   getTalk(id) {
-    // TODO: Write getTalk and execute it
-    return Observable.empty();
+    return this.apollo.watchQuery<GetTalkResponse>({
+      query: getTalk,
+      variables: {
+        id: id
+      }
+    });
   }
 
   setupForm() {
@@ -55,7 +58,7 @@ export class TalkFormComponent implements OnInit, OnDestroy {
     });
   }
 
-  updateTalkForm(data: getTalkResponse) {
+  updateTalkForm(data: GetTalkResponse) {
     this.talkForm.patchValue({
       ...data.talk,
       startsAt: timeToInput(data.talk.startsAt)
@@ -65,14 +68,26 @@ export class TalkFormComponent implements OnInit, OnDestroy {
 
   submitTalk($event) {
     $event.preventDefault();
+
+    let {startsAt, ...talkData} = this.talkForm.value;
+    startsAt = startsAt ? {startsAt: timeInputToDate(startsAt)} : {};
+
+    const id = this.idParam ? {id: this.idParam} : {};
+
     const mutation = this.idParam ? updateTalk : addTalk;
 
-    // TODO: Write updateTalk and updateTalk, execute it
-    const submitTalk$ = Observable.empty().subscribe(({ data }) => {
+    const updateOrAdd$ = this.apollo.mutate({
+      mutation: mutation,
+      variables: {
+        ...id,
+        ...talkData,
+        ...startsAt
+      }
+    }).subscribe(_ => {
       this.showModalSuccess = true;
-    });
+    }, err => console.error(err));
 
-    this.subscriptions = this.subscriptions.concat(submitTalk$);
+    this.subscriptions = this.subscriptions.concat(updateOrAdd$);
   }
 
 
